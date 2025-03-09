@@ -1,25 +1,43 @@
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-interface PrivateRouteProps {
+type PrivateRouteProps = {
   children: React.ReactNode;
-  allowedRoles?: ('student' | 'teacher')[];
-}
+  allowedRole?: 'student' | 'teacher';
+};
 
-export const PrivateRoute: React.FC<PrivateRouteProps> = ({ 
-  children, 
-  allowedRoles = [] 
-}) => {
-  const user = useAuthStore((state) => state.user);
-  const location = useLocation();
+// Mock user for development
+const MOCK_USERS = {
+  student: {
+    id: 'mock-student-id',
+    email: 'student@123.com',
+    firstName: 'Sample',
+    lastName: 'Student',
+    role: 'student' as const,
+  },
+  teacher: {
+    id: 'mock-teacher-id',
+    email: 'teacher@123.com',
+    firstName: 'Sample',
+    lastName: 'Teacher',
+    role: 'teacher' as const,
+  }
+};
 
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+export function PrivateRoute({ children, allowedRole }: PrivateRouteProps) {
+  const { user } = useAuth();
+  
+  // For development: automatically set mock user based on the route
+  const mockUser = allowedRole ? MOCK_USERS[allowedRole] : null;
+  const effectiveUser = user || mockUser;
+
+  if (!effectiveUser) {
+    return <Navigate to="/" />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+  if (allowedRole && effectiveUser.role !== allowedRole) {
+    return <Navigate to={`/${effectiveUser.role}-dashboard`} />;
   }
 
   return <>{children}</>;
-};
+}
